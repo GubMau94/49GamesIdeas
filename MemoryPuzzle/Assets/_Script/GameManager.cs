@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 
 public class GameManager : MonoBehaviour
 {
@@ -10,6 +11,9 @@ public class GameManager : MonoBehaviour
 
     [SerializeField]
     private RectTransform[] rectTransformImages;
+
+    [SerializeField]
+    private GameObject winGroup;
 
     private bool firstImageSelected, secondImageSelected;
     private int recordLoop, offsetX, offsetY, firstImageNumber, secondImageNumber, buttonOnePressedNum, buttonTwoPressedNum, randomNum;
@@ -23,12 +27,27 @@ public class GameManager : MonoBehaviour
         firstImageSelected = false;
         secondImageSelected = false;
 
-        FillNumberListAndShuffle();
+        winGroup.SetActive(false);
 
-        for(int i = 0; i < 8; i++)
+        FillNumberListAndShuffle();
+        CardsDistribution();            
+    }
+
+    // Update is called once per frame
+    void Update()
+    {
+        MatchCheck();
+    }
+
+    /// <summary>
+    /// Dispone le carte sul piano da gioco
+    /// </summary>
+    private void CardsDistribution()
+    {
+        for (int i = 0; i < 8; i++)
         {
             offsetX = 0;
-            for(int j = (0 + recordLoop); j < (6 + recordLoop); j++)
+            for (int j = (0 + recordLoop); j < (6 + recordLoop); j++)
             {
                 print("J:" + j);
                 rectTransformImages[numList[j]].anchoredPosition = new Vector2(-227 + offsetX, 205 - offsetY);
@@ -37,13 +56,6 @@ public class GameManager : MonoBehaviour
             recordLoop += 6;
             offsetY += 72;
         }
-        
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        MatchCheck();
     }
 
     /// <summary>
@@ -58,6 +70,11 @@ public class GameManager : MonoBehaviour
                 print("WOW, COMPLIMENTI!!");
                 firstImageSelected = false;
                 secondImageSelected = false;
+
+                DestroyButtonFinded(buttonOnePressedNum);
+                DestroyButtonFinded(buttonTwoPressedNum);
+
+                StartCoroutine(CheckButtonsAvailables());
             }
             else if (firstImageNumber != secondImageNumber)
             {
@@ -71,6 +88,23 @@ public class GameManager : MonoBehaviour
     }
 
     /// <summary>
+    /// Verifica se ci sono ancora dei pulsanti, altrimenti decreta la fine della partita
+    /// </summary>
+    /// <returns></returns>
+    private IEnumerator CheckButtonsAvailables()
+    {
+        yield return new WaitForSeconds(1);
+
+        int buttonsNumber = FindObjectsOfType<Button>().Length;
+        print("buttons remains: " + buttonsNumber);
+
+        if(buttonsNumber == 0)
+        {
+            winGroup.SetActive(true);
+        }
+    }
+
+    /// <summary>
     /// Turn on card
     /// </summary>
     /// <param name="buttonNum">card number</param>
@@ -78,6 +112,15 @@ public class GameManager : MonoBehaviour
     {
         buttons[buttonNum].enabled = false;
         buttons[buttonNum].image.enabled = false;
+    }
+
+    /// <summary>
+    /// Rimuove dalla scena il pulsante
+    /// </summary>
+    /// <param name="buttonNum">numero del pulsante da rimuovere</param>
+    private void DestroyButtonFinded(int buttonNum)
+    {
+        Destroy(buttons[buttonNum]);
     }
 
     /// <summary>
@@ -93,6 +136,9 @@ public class GameManager : MonoBehaviour
         buttons[buttonNum].image.enabled = true;
     }
 
+    /// <summary>
+    /// Riempi di numeri la lista e li mescola, così da distribuire le immagini in modo casuale
+    /// </summary>
     private void FillNumberListAndShuffle()
     {
         for(int i = 0; i < rectTransformImages.Length; i++)
@@ -107,6 +153,14 @@ public class GameManager : MonoBehaviour
             numList[rnd] = numList[i];
             numList[i] = tempGO;
         }
+    }
+
+    /// <summary>
+    /// Reinizia la partita
+    /// </summary>
+    public void RestartMatch()
+    {
+        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
     }
 
     #region PUBLIC IMAGE BUTTONS
