@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using UnityEngine.SceneManagement;
 
 //Lo scopo del gioco è quello di cliccare sui colori in ordine corretto precedentemente mostrati
 //Numerazione dei bottoni:
@@ -14,11 +15,11 @@ using TMPro;
 
 public class GameManager : MonoBehaviour
 {
-    [SerializeField] private GameObject buttonParent;
+    [SerializeField] private GameObject buttonParent, gameOver;
     private Button[] buttons;
 
-    [SerializeField] private TMP_Text roundText, gameStatusText;
-    [SerializeField] private Button gameExplainButton;
+    [SerializeField] private TMP_Text roundText, gameStatusText, highestRoundText;
+    [SerializeField] private Button gameExplainButton, restartMatchButton;
 
     [SerializeField] private float timerOn, timerOff;
 
@@ -37,6 +38,7 @@ public class GameManager : MonoBehaviour
 
     private List<int> patternList = new List<int>();
 
+    private const string HIGHEST_ROUND = "HIGHEST_ROUND";
 
     // Start is called before the first frame update
     void Start()
@@ -54,6 +56,8 @@ public class GameManager : MonoBehaviour
         roundText.text = "Round: " + actualRound;        
 
         status = gameStatus.loading;
+
+        gameOver.SetActive(false);
     }
 
     // Update is called once per frame
@@ -61,7 +65,7 @@ public class GameManager : MonoBehaviour
     {
         GameStatusTextDisplay();
         EnableDisableButtons();
-        UpdateActualRound();        
+        UpdateActualRoundAndHighestRecord();        
     }
 
     /// <summary>
@@ -162,14 +166,25 @@ public class GameManager : MonoBehaviour
                 buttons[i].enabled = false;
             }
         }
+
+        if (status == gameStatus.gameOver)
+        {
+            for (int i = 0; i < buttons.Length; i++)
+            {
+                buttons[i].enabled = false;
+            }
+            restartMatchButton.enabled = true;
+
+        }
     }
 
     /// <summary>
-    /// 
+    /// Gestisce il numero del round attuale ed il miglior record
     /// </summary>
-    private void UpdateActualRound()
+    private void UpdateActualRoundAndHighestRecord()
     {
         roundText.text = "Round: " + actualRound;
+        highestRoundText.text = "Highest: " + PlayerPrefs.GetInt(HIGHEST_ROUND);
 
         if (patternCorrect)
         {
@@ -179,10 +194,22 @@ public class GameManager : MonoBehaviour
             status = gameStatus.showingColors;
             StartCoroutine(ColorsLogic());
         }
+
+        if(actualRound > PlayerPrefs.GetInt(HIGHEST_ROUND))
+        {
+            PlayerPrefs.SetInt(HIGHEST_ROUND, actualRound);
+        }
     }
 
+    /// <summary>
+    /// Illumina il pulsante premuto e verifica che sia corretto in base al precedente ordine
+    /// </summary>
+    /// <param name="buttonNum">numero pulsante</param>
+    /// <returns></returns>
     private IEnumerator ButtonClick(int buttonNum)
     {
+        yield return new WaitForSeconds(0.1f);
+
         IncreaseButtonsAlpha(buttonNum);
         yield return new WaitForSeconds(0.3f);
 
@@ -196,9 +223,10 @@ public class GameManager : MonoBehaviour
         else
         {
             print("game over");
+            gameOver.SetActive(true);
         }
 
-        if(indexPattern == actualRound)
+        if (indexPattern == actualRound)
         {
             indexPattern = 0;
             patternCorrect = true;
@@ -226,5 +254,13 @@ public class GameManager : MonoBehaviour
         gameExplainButton.gameObject.SetActive(false);
 
         StartCoroutine(ColorsLogic());
+    }
+
+    /// <summary>
+    /// Rincomincia la partita
+    /// </summary>
+    public void RestartMatch()
+    {
+        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
     }
 }
